@@ -1,0 +1,36 @@
+##################################################################################################################
+##                                                                                                              ##
+## getDigest.yml                                                                                                ##
+## This script retrieves the repository ID and digest for a given tag in a GitLab project's container registry. ##
+## It uses the GitLab API to make HTTP requests and the jq tool to parse JSON responses                         ##
+##                                                                                                              ##
+## Note:                                                                                                        ##
+## This script assumes that the necessary environment variables (CI_SERVER_URL, CI_PROJECT_ID, TAG              ##
+## and GROUP_ACCESS_TOKEN) are set before execution.                                                            ##
+##                                                                                                              ##
+##################################################################################################################
+
+.getDigest:
+  stage: sign
+  variables:
+    TAG: ${APP_VERSION}
+  script:
+    - echo "Get REPOSITORY_ID & digest"
+    - |
+      # Step 1: Retrieve the repository ID
+      URL_REPOSITORY_ID="${CI_SERVER_URL}/api/v4/projects/${CI_PROJECT_ID}/registry/repositories"
+      RESPONSE_REPO_ID=$(curl --header "PRIVATE-TOKEN: ${GROUP_ACCESS_TOKEN}" "${URL_REPOSITORY_ID}")
+      REPOSITORY_ID=$(echo "${RESPONSE_REPO_ID}" | jq -r '.[].id')
+      echo "REPOSITORY_ID: ${REPOSITORY_ID}"
+
+      # Step 2: Retrieve the digest
+      URL_DIGEST="${CI_SERVER_URL}/api/v4/projects/${CI_PROJECT_ID}/registry/repositories/${REPOSITORY_ID}/tags/${TAG}"
+      echo URL_DIGEST: ${URL_DIGEST}
+      RESPONSE_DIGEST=$(curl --header "PRIVATE-TOKEN: ${GROUP_ACCESS_TOKEN}" "${URL_DIGEST}")
+      echo "${RESPONSE_DIGEST}" | jq -r '.digest' > digest
+      DIGEST=$(cat digest)
+      echo "Tag: ${TAG} / Digest: ${DIGEST}"
+  artifacts:
+    paths:
+      - digest
+    expire_in: 1 hour
