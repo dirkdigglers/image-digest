@@ -12,8 +12,6 @@
 
 .getDigest:
   stage: sign
-  variables:
-    TAG: ${APP_VERSION}
   script:
     - echo "Get REPOSITORY_ID & digest"
     - |
